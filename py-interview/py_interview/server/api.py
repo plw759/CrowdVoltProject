@@ -14,4 +14,4 @@ class Api(BaseAPI):
         self.add_route('/api/event/like', event_resource, suffix='like')
         self.add_route('/api/event/comment', event_resource, suffix='comment')
         self.add_route('/api/event/comments', event_resource, suffix='comments')
-        self.add_route('/api/event/comment/like', event_resource, suffix='comment_like')
+        self.add_route('/api/event/comment/like', event_resource, suffix='like_comment')

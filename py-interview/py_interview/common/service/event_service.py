@@ -54,7 +54,7 @@ class EventService(metaclass=abc.ABCMeta):
         :param text: Text of the comment
         :return: The saved comment
         """
-        
+
 class EventServiceDefault(EventService):
 
     def __init__(self, event_data_layer: EventDataLayer, comment_data_layer: CommentDataLayer):
@@ -87,10 +87,10 @@ class EventServiceDefault(EventService):
             uqid=uqid, attr={'number_of_likes': event.number_of_likes + 1}
         )
 
-    def get_comments(self, event_uqid: str, limit: int = 20, cursor: Optional[str] = None) -> Tuple[List[CommentDTO], Optional[str]]:
-        self._logger.info(f"Service: Getting comments for event {event_uqid}, limit={limit}, cursor={cursor}")
-        comments, next_cursor = self._comment_data_layer.get_comments_for_event(event_uqid, limit, cursor)
-        self._logger.info(f"Service: Retrieved {len(comments)} comments for event {event_uqid}, next_cursor={next_cursor}")
+    def get_comments(self, event_uqid: str, limit: int = 0, cursor: Optional[str] = None) -> Tuple[List[CommentDTO], Optional[str]]:
+        self._logger.info(f"Service: Getting comments for event {event_uqid}, limit={limit}")
+        comments, next_cursor = self._comment_data_layer.get_comments_for_event(event_uqid, limit, cursor) # cursor is none for now
+        self._logger.info(f"Service: Retrieved {len(comments)} comments for event {event_uqid}")
         return [comment_to_dto(c) for c in comments], next_cursor
 
     def add_comment(self, event_uqid: str, user: str, text: str) -> CommentDTO:
@@ -100,3 +100,10 @@ class EventServiceDefault(EventService):
         saved_comment = self._comment_data_layer.add_comment(event_uqid, comment)
         self._logger.info(f"Service: Comment saved successfully, saved_comment uqid={saved_comment.uqid}")
         return comment_to_dto(saved_comment) 
+    
+    def like_comment(self, comment_uqid: str) -> None:
+        comment = self._comment_data_layer.get(uqid=comment_uqid)
+
+        self._comment_data_layer.update(
+            uqid=comment_uqid, attr={'number_of_likes': comment.number_of_likes + 1}
+        )

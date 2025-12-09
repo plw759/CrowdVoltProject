@@ -9,14 +9,13 @@ interface EventCommentsProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   event: IEvent | null;
-  cursor?: string | null;
   onAddComment: (text: string, author: string) => void;
   onLoadMoreComments?: (cursor: string | null) => void;
   onLikeComment?: (comment_id: string) => void;
 }
 
 const EventComments = (props: EventCommentsProps) => {
-  const { isOpen, onOpenChange, event, cursor, onAddComment, onLoadMoreComments, onLikeComment } = props;
+  const { isOpen, onOpenChange, event, onAddComment, onLoadMoreComments, onLikeComment } = props;
   const [newComment, setNewComment] = useState('');
   const [author, setAuthor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,11 +54,11 @@ const EventComments = (props: EventCommentsProps) => {
   };
 
   const handleLoadMore = async () => {
-    if (!onLoadMoreComments) return;
+    if (!event?.comments || !onLoadMoreComments) return;
     setIsLoadingMore(true);
     try {
-      console.log('Loading more comments with composite cursor:', cursor);
-      await onLoadMoreComments(cursor || null);
+      const lastComment = event.comments[event.comments.length - 1];
+      await onLoadMoreComments(lastComment?.id || null);
     } finally {
       setIsLoadingMore(false);
     }

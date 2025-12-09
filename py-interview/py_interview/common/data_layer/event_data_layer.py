@@ -1,13 +1,11 @@
 import abc
 from threading import Thread
-from typing import Union, List, Optional, Dict, Any, Tuple
-from logging import getLogger
+from typing import Union, List, Optional, Dict, Any
 
-from py_interview.common.domain.event import Event, Comment
+from py_interview.common.domain.event import Event
 from py_interview.common.helpers.base.base_data_layer import BaseDataLayer
 from py_interview.common.helpers.base.base_data_layer_cache import BaseDataLayerCache
 from py_interview.common.helpers.base.base_data_layer_in_memory import BaseDataLayerInMemory
-from py_interview.common.data_layer.comment_data_layer import CommentDataLayer
 
 
 class EventDataLayer(BaseDataLayer, metaclass=abc.ABCMeta):
@@ -43,7 +41,7 @@ class EventDataLayer(BaseDataLayer, metaclass=abc.ABCMeta):
         """
 
 class EventDataLayerInMemory(BaseDataLayerInMemory, EventDataLayer):
-    def __init__(self, comment_data_layer: CommentDataLayer = None):
+    def __init__(self):
         super(EventDataLayerInMemory, self).__init__(target_class=Event)
 
 class EventDataLayerCache(BaseDataLayerCache, EventDataLayer, Thread):

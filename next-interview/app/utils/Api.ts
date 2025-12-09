@@ -10,7 +10,7 @@ const cacheResult = (url: string, promise: Promise<any>) => {
     // Invalidate this cache entry after 3 seconds
     setTimeout(() => {
         delete fetchCache[url];
-    }, 3000); // 3000 milliseconds = 3 seconds
+    }, 1); // 3000 milliseconds = 3 seconds
 };
 
 export const ApiGet = async (route: string) => {
@@ -89,21 +89,11 @@ export const ApiPost = async (route: string, postData: any) => {
 };
 
 export const ApiGetComments = async (event_uqid: string, cursor: string | null = null) => {
-    const queryParams = new URLSearchParams({ uqid: event_uqid, limit: '20' });
-    if (cursor) {
-        console.log('Using composite cursor for pagination:', cursor);
-        queryParams.append('cursor', cursor);
-    }
+    const queryParams = new URLSearchParams({ uqid: event_uqid });
+    if (cursor) queryParams.append('cursor', cursor);
     const route = `event/comments?${queryParams.toString()}`;
-    console.log('Fetching comments from route:', route);
     
-    const response = await ApiGet(route);
-    console.log('Comments API response:', response);
-    
-    return {
-        comments: response.comments || [],
-        next_cursor: response.next_cursor || null
-    };
+    return ApiGet(route);
 };
 
 export const ApiLikeComment = async (comment_id: string) => {

@@ -93,14 +93,12 @@ const EventList = () => {
 
   const fetchCommentsForEvent = async (event_uqid: string, cursor: string | null = null) => {
     try {
-      console.log('Fetching comments for event:', event_uqid, 'with composite cursor:', cursor);
-      const response = await ApiGetComments(event_uqid, cursor);
-      const comments = response.comments;
-      const nextCursor = response.next_cursor;
-      
-      console.log('Received comments response:', response);
+      console.log('Fetching comments for event:', event_uqid, 'cursor:', cursor);
+      const commentsAndCursor = await ApiGetComments(event_uqid, cursor);
+      const comments = commentsAndCursor.comments;
+      const newCursor = commentsAndCursor.cursor || null;
+      console.log('Received comments response:', commentsAndCursor);
       console.log('Raw comments array:', comments);
-      console.log('Next cursor for pagination:', nextCursor);
       
       // Log the structure of the first comment to see all fields
       if (comments && comments.length > 0) {
@@ -133,10 +131,10 @@ const EventList = () => {
         }
         return prev;
       });
-      
-      // Store the next_cursor from the API response for pagination
-      console.log('Setting next cursor:', nextCursor);
-      setCommentsCursor(nextCursor);
+      // Store the cursor for pagination
+      if (parsedComments.length > 0 && parsedComments[parsedComments.length - 1].id) {
+        setCommentsCursor(parsedComments[parsedComments.length - 1].id);
+      }
     } catch (error) {
       console.error('Error fetching comments:', error);
     }
@@ -196,7 +194,6 @@ const EventList = () => {
         isOpen={isCommentsOpen}
         onOpenChange={setIsCommentsOpen}
         event={selectedEventForComments}
-        cursor={commentsCursor}
         onAddComment={handleAddComment}
         onLoadMoreComments={(cursor) => {
           if (selectedEventForComments) {

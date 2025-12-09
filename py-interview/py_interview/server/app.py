@@ -2,7 +2,7 @@ import logging
 from wsgiref.simple_server import make_server
 
 from py_interview.common.data_layer.comment_data_layer import CommentDataLayerInMemory
-from py_interview.common.data_layer.event_data_layer import EventDataLayerInMemory
+from py_interview.common.data_layer.event_data_layer import EventDataLayerCache, EventDataLayerInMemory
 from py_interview.common.domain.event import new_comment, new_event
 from py_interview.common.service.event_service import EventServiceDefault
 from py_interview.server.api import Api
@@ -11,7 +11,7 @@ from py_interview.server.api import Api
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
-event_data_layer = EventDataLayerInMemory()
+event_data_layer = EventDataLayerCache(EventDataLayerInMemory())
 comment_data_layer = CommentDataLayerInMemory()
 
 # save a sample one
