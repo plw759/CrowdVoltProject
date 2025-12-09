@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 from logging import getLogger
 
 from py_interview.common.data_layer.event_data_layer import EventDataLayer
+from py_interview.common.data_layer.comment_data_layer import CommentDataLayer
 from py_interview.common.domain.event import EventDTO, event_to_dto, CommentDTO, comment_to_dto, new_event, new_comment
 
 
@@ -34,12 +35,31 @@ class EventService(metaclass=abc.ABCMeta):
         :return: None
         """
 
+    def get_comments(self, event_uqid: str, limit: int = 20, cursor: Optional[str] = None) -> Tuple[List[CommentDTO], Optional[str]]:
+        """
+        gets comments for an event with pagination
 
+        :param event_uqid: Event ID to get comments for
+        :param limit: Number of comments to return
+        :param cursor: Cursor from previous response (comment uqid to start after)
+        :return: Tuple of (comments, next_cursor)
+        """
 
+    def add_comment(self, event_uqid: str, user: str, text: str) -> CommentDTO:
+        """
+        adds a comment to an event
+
+        :param event_uqid: Event ID to add comment to
+        :param user: User adding the comment
+        :param text: Text of the comment
+        :return: The saved comment
+        """
+        
 class EventServiceDefault(EventService):
 
-    def __init__(self, event_data_layer: EventDataLayer):
+    def __init__(self, event_data_layer: EventDataLayer, comment_data_layer: CommentDataLayer):
         self._event_data_layer = event_data_layer
+        self._comment_data_layer = comment_data_layer
         self._logger = getLogger(self.__module__)
 
     def get_events(self) -> List[EventDTO]:
@@ -69,7 +89,7 @@ class EventServiceDefault(EventService):
 
     def get_comments(self, event_uqid: str, limit: int = 20, cursor: Optional[str] = None) -> Tuple[List[CommentDTO], Optional[str]]:
         self._logger.info(f"Service: Getting comments for event {event_uqid}, limit={limit}, cursor={cursor}")
-        comments, next_cursor = self._event_data_layer.get_comments(event_uqid, limit, cursor)
+        comments, next_cursor = self._comment_data_layer.get_comments_for_event(event_uqid, limit, cursor)
         self._logger.info(f"Service: Retrieved {len(comments)} comments for event {event_uqid}, next_cursor={next_cursor}")
         return [comment_to_dto(c) for c in comments], next_cursor
 
@@ -77,6 +97,6 @@ class EventServiceDefault(EventService):
         self._logger.info(f"Service: Adding comment to event {event_uqid} by {user}: '{text[:50]}...'")
         comment = new_comment(event_uqid=event_uqid ,user=user, text=text)
         self._logger.info(f"Service: Created comment object with uqid={comment.uqid}")
-        saved_comment = self._event_data_layer.add_comment(event_uqid, comment)
+        saved_comment = self._comment_data_layer.add_comment(event_uqid, comment)
         self._logger.info(f"Service: Comment saved successfully, saved_comment uqid={saved_comment.uqid}")
         return comment_to_dto(saved_comment) 

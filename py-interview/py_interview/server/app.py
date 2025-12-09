@@ -1,6 +1,7 @@
 import logging
 from wsgiref.simple_server import make_server
 
+from py_interview.common.data_layer.comment_data_layer import CommentDataLayerInMemory
 from py_interview.common.data_layer.event_data_layer import EventDataLayerInMemory
 from py_interview.common.domain.event import new_comment, new_event
 from py_interview.common.service.event_service import EventServiceDefault
@@ -11,6 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
 event_data_layer = EventDataLayerInMemory()
+comment_data_layer = CommentDataLayerInMemory()
 
 # save a sample one
 event_data_layer.create(new_event(
@@ -18,13 +20,13 @@ event_data_layer.create(new_event(
     img_link='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQGg117hTNrhTBDkX0CTSHEnp7LRdOsrl76CQ&s',
     number_of_likes=0))
 
-event_data_layer.add_comment(
+comment_data_layer.add_comment(
     event_uqid=event_data_layer.list()[0].uqid,
     comment=new_comment(event_uqid=event_data_layer.list()[0].uqid,
         text='Test Comment', user='First Comment',
         number_of_likes=0))
 
-event_service = EventServiceDefault(event_data_layer=event_data_layer)
+event_service = EventServiceDefault(event_data_layer=event_data_layer, comment_data_layer=comment_data_layer)
 
 app = Api(event_service=event_service)
 

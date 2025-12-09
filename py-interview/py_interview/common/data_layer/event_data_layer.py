@@ -45,19 +45,6 @@ class EventDataLayer(BaseDataLayer, metaclass=abc.ABCMeta):
 class EventDataLayerInMemory(BaseDataLayerInMemory, EventDataLayer):
     def __init__(self, comment_data_layer: CommentDataLayer = None):
         super(EventDataLayerInMemory, self).__init__(target_class=Event)
-        # Inject CommentDataLayer for managing comments separately
-        if comment_data_layer is None:
-            from py_interview.common.data_layer.comment_data_layer import CommentDataLayerInMemory
-            comment_data_layer = CommentDataLayerInMemory()
-        self._comment_data_layer = comment_data_layer
-        self._logger = getLogger(self.__module__)
-
-    def get_comments(self, event_uqid: str, limit: int = 20, cursor: Optional[str] = None) -> Tuple[List[Comment], Optional[str]]:
-        return self._comment_data_layer.get_comments_for_event(event_uqid, limit, cursor)
-
-    def add_comment(self, event_uqid: str, comment: Comment) -> Comment:
-        return self._comment_data_layer.add_comment(event_uqid, comment)
-
 
 class EventDataLayerCache(BaseDataLayerCache, EventDataLayer, Thread):
     def __init__(self, underlying: EventDataLayer):

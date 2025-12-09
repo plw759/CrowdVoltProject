@@ -31,16 +31,6 @@ class CommentDataLayer(BaseDataLayer, metaclass=abc.ABCMeta):
         :return: Tuple of (comments, next_cursor)
         """
 
-    @abc.abstractmethod
-    def delete_comment(self, event_uqid: str, comment_uqid: str) -> Optional[Comment]:
-        """
-        Delete a comment from an event
-
-        :param event_uqid: Event ID
-        :param comment_uqid: Comment ID to delete
-        :return: The deleted comment
-        """
-
 
 class CommentDataLayerInMemory(BaseDataLayerInMemory, CommentDataLayer):
     """In-memory implementation of comment storage"""
@@ -108,27 +98,3 @@ class CommentDataLayerInMemory(BaseDataLayerInMemory, CommentDataLayer):
 
         return result_comments, next_cursor
 
-    def delete_comment(self, event_uqid: str, comment_uqid: str) -> Optional[Comment]:
-        """
-        Delete a comment from an event
-
-        :param event_uqid: Event ID
-        :param comment_uqid: Comment ID to delete
-        :return: The deleted comment
-        """
-        self._logger.info(f"CommentDataLayer: Deleting comment {comment_uqid} from event {event_uqid}")
-        if event_uqid not in self._comments_by_event:
-            self._logger.warning(f"CommentDataLayer: Event {event_uqid} not found")
-            return None
-
-        comments = self._comments_by_event[event_uqid]
-        comment_to_delete = None
-        for i, comment in enumerate(comments):
-            if comment.uqid == comment_uqid:
-                comment_to_delete = comments.pop(i)
-                if comment_uqid in self._data:
-                    del self._data[comment_uqid]
-                self._logger.info(f"CommentDataLayer: Comment deleted. Event {event_uqid} now has {len(comments)} comments")
-                break
-
-        return comment_to_delete
