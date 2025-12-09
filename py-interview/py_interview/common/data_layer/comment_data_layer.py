@@ -62,35 +62,46 @@ class CommentDataLayerInMemory(BaseDataLayerInMemory, CommentDataLayer):
 
     def get_comments_for_event(self, event_uqid: str, limit: int = 20, cursor: Optional[str] = None) -> Tuple[List[Comment], Optional[str]]:
         """
-        Get comments for an event with cursor-based pagination
+        Get comments for an event with cursor-based pagination (sorted by created_at)
 
         :param event_uqid: Event ID
         :param limit: Number of comments to return
-        :param cursor: Cursor (comment uqid) to start after
+        :param cursor: Cursor format "created_at|uqid" to start after
         :return: Tuple of (comments, next_cursor)
         """
         self._logger.info(f"CommentDataLayer: Getting comments for event {event_uqid}, limit={limit}, cursor={cursor}")
         comments = self._comments_by_event.get(event_uqid, [])
-        self._logger.info(f"CommentDataLayer: Found {len(comments)} total comments for event {event_uqid}")
+        
+        # Sort by created_at, then by uqid for stable ordering
+        sorted_comments = sorted(comments, key=lambda c: (c.created_at, c.uqid))
+        self._logger.info(f"CommentDataLayer: Found {len(sorted_comments)} total comments for event {event_uqid}")
 
-        # Find starting position
+        # Find starting position using cursor
         start_idx = 0
         if cursor:
-            # Find the comment with the cursor uqid and start after it
-            for i, comment in enumerate(comments):
-                if comment.uqid == cursor:
-                    start_idx = i + 1
-                    self._logger.info(f"CommentDataLayer: Found cursor at index {i}, starting from {start_idx}")
-                    break
+            try:
+                cursor_created_at_str, cursor_uqid = cursor.split('|')
+                from datetime import datetime
+                cursor_created_at = datetime.fromisoformat(cursor_created_at_str)
+                
+                # Find the comment with matching cursor and start after it
+                for i, comment in enumerate(sorted_comments):
+                    if comment.created_at == cursor_created_at and comment.uqid == cursor_uqid:
+                        start_idx = i + 1
+                        self._logger.info(f"CommentDataLayer: Found cursor at index {i}, starting from {start_idx}")
+                        break
+            except Exception as e:
+                self._logger.warning(f"CommentDataLayer: Invalid cursor format: {cursor}, error: {e}")
 
         # Get limit+1 to determine if there are more results
         end_idx = start_idx + limit + 1
-        result_comments = comments[start_idx:end_idx]
+        result_comments = sorted_comments[start_idx:end_idx]
 
         # Determine next cursor
         next_cursor = None
         if len(result_comments) > limit:
-            next_cursor = result_comments[limit - 1].uqid
+            last_comment = result_comments[limit - 1]
+            next_cursor = f"{last_comment.created_at.isoformat()}|{last_comment.uqid}"
             result_comments = result_comments[:limit]
             self._logger.info(f"CommentDataLayer: Returning {limit} comments with next_cursor={next_cursor}")
         else:
