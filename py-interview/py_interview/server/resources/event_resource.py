@@ -71,7 +71,6 @@ class EventResource:
         resp.media = {'comments': [dc.asdict(comment) for comment in comments], 'next_cursor': next_cursor}
         
     def on_post_like_comment(self, req, resp):
-        """Handles POST requests to like a comment"""
         post_body = json.load(req.bounded_stream)
         comment_uqid = post_body.get('comment_uqid', None)
 

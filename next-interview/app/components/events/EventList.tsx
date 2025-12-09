@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
-import { ApiGet, ApiPost, ApiGetComments, ApiLikeComment } from '@/app/utils/Api';
-import { IEvent, IComment } from '@/app/types';
+import { ApiGet, ApiPost } from '@/app/utils/Api';
+import { IEvent } from '@/app/types';
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import EventCard from './EventCard';
@@ -90,6 +90,20 @@ const EventList = () => {
     // Fetch comments for this event
     fetchCommentsForEvent(event.uqid);
   };
+  
+  const ApiGetComments = async (event_uqid: string, cursor: string | null = null) => {
+    const queryParams = new URLSearchParams({ uqid: event_uqid });
+    if (cursor) queryParams.append('cursor', cursor);
+    const route = `event/comments?${queryParams.toString()}`;
+    
+    return ApiGet(route);
+  };
+
+  const ApiLikeComment = async (comment_id: string) => {
+    const payload = { comment_uqid: comment_id };
+    console.log('Sending like comment request with payload:', payload);
+    return ApiPost('event/comment/like', payload);
+  };
 
   const fetchCommentsForEvent = async (event_uqid: string, cursor: string | null = null) => {
     try {
@@ -109,8 +123,8 @@ const EventList = () => {
       
       // Ensure all comments have the created_at field
       const parsedComments = comments.map((comment: any) => ({
-        id: comment.id,
-        uqid: comment.uqid,
+        id: comment.uqid,
+        uqid: comment.event_uqid,
         user: comment.user,
         text: comment.text,
         created_at: comment.created_at || new Date().toISOString(),
