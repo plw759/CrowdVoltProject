@@ -17,15 +17,21 @@ comment_data_layer = CommentDataLayerInMemory()
 
 # save a sample one
 event_data_layer.create(new_event(
-    name='Test Event', description='Pokemon Stadium Tournament',
+    name='Test Event 1', description='Pokemon Stadium Tournament',
     img_link='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQGg117hTNrhTBDkX0CTSHEnp7LRdOsrl76CQ&s',
     number_of_likes=0))
 
-comment_data_layer.add_comment(
-    event_uqid=event_data_layer.list()[0].uqid,
-    comment=new_comment(event_uqid=event_data_layer.list()[0].uqid,
-        text='Test Comment', user='First Comment',
-        number_of_likes=0))
+event_data_layer.create(new_event(
+    name='Test Event 2', description='Pokemon Stadium Tournament',
+    img_link='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQGg117hTNrhTBDkX0CTSHEnp7LRdOsrl76CQ&s',
+    number_of_likes=0))
+
+for i in range(25):
+    comment_data_layer.add_comment(
+        event_uqid=event_data_layer.list()[0].uqid,
+        comment=new_comment(event_uqid=event_data_layer.list()[0].uqid,
+            text=f'Comment {i+1}', user=f'User {i+1}',
+            number_of_likes=0))
 
 event_service = EventServiceDefault(event_data_layer=event_data_layer, comment_data_layer=comment_data_layer)
 
