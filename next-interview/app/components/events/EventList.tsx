@@ -27,7 +27,8 @@ const EventList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEventForComments, setSelectedEventForComments] = useState<IEvent | null>(null);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [commentsCursor, setCommentsCursor] = useState<string | null>(null);
+  const [commentOffset, setCommentOffset] = useState(0);
+  const [commentHasMore, setCommentHasMore] = useState(false);
 
   useEffect(() => {
     fetchEvents();
@@ -45,12 +46,16 @@ const EventList = () => {
           description: event.description,
           img_link: event.img_link,
           number_of_likes: event.number_of_likes,
-          comments: event.comments && Array.isArray(event.comments) ? event.comments : []
+          comments: event.comments && Array.isArray(event.comments) ? event.comments : [],
+          total_comments: 0
         };
         return processedEvent;
       });
       console.log('Fetched events with comments initialized:', eventsWithComments);
       setEvents(eventsWithComments);
+      
+      // Fetch initial comments and metadata for each event
+      await Promise.all(eventsWithComments.map((event: IEvent) => fetchInitialCommentsForEvent(event.uqid)));
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
@@ -86,14 +91,17 @@ const EventList = () => {
   const handleViewComments = (event: IEvent) => {
     setSelectedEventForComments(event);
     setIsCommentsOpen(true);
-    setCommentsCursor(null);
+    setCommentOffset(0);
     // Fetch comments for this event
-    fetchCommentsForEvent(event.uqid);
+    fetchCommentsForEvent(event.uqid, 0);
   };
   
-  const ApiGetComments = async (event_uqid: string, cursor: string | null = null) => {
-    const queryParams = new URLSearchParams({ uqid: event_uqid });
-    if (cursor) queryParams.append('cursor', cursor);
+  const ApiGetComments = async (event_uqid: string, limit: number = 20, offset: number = 0) => {
+    const queryParams = new URLSearchParams({ 
+      uqid: event_uqid,
+      limit: limit.toString(),
+      offset: offset.toString()
+    });
     const route = `event/comments?${queryParams.toString()}`;
     
     return ApiGet(route);
@@ -105,14 +113,54 @@ const EventList = () => {
     return ApiPost('event/comment/like', payload);
   };
 
-  const fetchCommentsForEvent = async (event_uqid: string, cursor: string | null = null) => {
+  const fetchInitialCommentsForEvent = async (event_uqid: string) => {
+    const limit = 20;
     try {
-      console.log('Fetching comments for event:', event_uqid, 'cursor:', cursor);
-      const commentsAndCursor = await ApiGetComments(event_uqid, cursor);
-      const comments = commentsAndCursor.comments;
-      const newCursor = commentsAndCursor.cursor || null;
-      console.log('Received comments response:', commentsAndCursor);
+      console.log('Fetching initial comments for event:', event_uqid);
+      const response = await ApiGetComments(event_uqid, limit, 0);
+      const comments = response.comments;
+      const pagination = response.pagination;
+      console.log('Received initial comments response:', response);
+      
+      // Parse comments
+      const parsedComments = comments.map((comment: any) => ({
+        id: comment.uqid,
+        uqid: comment.event_uqid,
+        user: comment.user,
+        text: comment.text,
+        created_at: comment.created_at || new Date().toISOString(),
+        number_of_likes: comment.number_of_likes || 0
+      }));
+      
+      // Update the main events array with initial comments and total count
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.uqid === event_uqid
+            ? {
+                ...event,
+                comments: parsedComments,
+                total_comments: pagination?.total || 0
+              }
+            : event
+        )
+      );
+      
+      console.log('Updated event with initial comments. Total:', pagination?.total);
+    } catch (error) {
+      console.error('Error fetching initial comments:', error);
+    }
+  };
+
+  const fetchCommentsForEvent = async (event_uqid: string, offset: number = 0) => {
+    const limit = 20;
+    try {
+      console.log('Fetching comments for event:', event_uqid, 'offset:', offset, 'limit:', limit);
+      const response = await ApiGetComments(event_uqid, limit, offset);
+      const comments = response.comments;
+      const pagination = response.pagination;
+      console.log('Received comments response:', response);
       console.log('Raw comments array:', comments);
+      console.log('Pagination:', pagination);
       
       // Log the structure of the first comment to see all fields
       if (comments && comments.length > 0) {
@@ -136,8 +184,8 @@ const EventList = () => {
       // Update the selected event with fetched comments
       setSelectedEventForComments((prev) => {
         if (prev && prev.uqid === event_uqid) {
-          // If we have a cursor, append comments; otherwise replace
-          const updatedComments = cursor && prev.comments 
+          // If we have an offset > 0, append comments; otherwise replace
+          const updatedComments = offset > 0 && prev.comments 
             ? [...prev.comments, ...parsedComments]
             : parsedComments;
           console.log('Updated comments state:', updatedComments);
@@ -145,10 +193,25 @@ const EventList = () => {
         }
         return prev;
       });
-      // Store the cursor for pagination
-      if (parsedComments.length > 0 && parsedComments[parsedComments.length - 1].id) {
-        setCommentsCursor(parsedComments[parsedComments.length - 1].id);
-      }
+      
+      // Also update the main events array so EventCard receives the comments
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.uqid === event_uqid
+            ? {
+                ...event,
+                comments: offset > 0 && event.comments
+                  ? [...event.comments, ...parsedComments]
+                  : parsedComments,
+              }
+            : event
+        )
+      );
+      
+      // Update pagination state
+      setCommentOffset(offset + limit);
+      setCommentHasMore(pagination?.has_more || false);
+      console.log('Updated offset to:', offset + limit, 'has_more:', pagination?.has_more);
     } catch (error) {
       console.error('Error fetching comments:', error);
     }
@@ -162,8 +225,8 @@ const EventList = () => {
         user: author,
         text 
       });
-      // Refresh comments for the current event
-      fetchCommentsForEvent(selectedEventForComments.uqid);
+      // Refresh comments for the current event (reset to offset 0)
+      fetchCommentsForEvent(selectedEventForComments.uqid, 0);
     } catch (error) {
       console.error('Error adding comment:', error);
     }
@@ -209,9 +272,10 @@ const EventList = () => {
         onOpenChange={setIsCommentsOpen}
         event={selectedEventForComments}
         onAddComment={handleAddComment}
-        onLoadMoreComments={(cursor) => {
+        hasMore={commentHasMore}
+        onLoadMoreComments={() => {
           if (selectedEventForComments) {
-            fetchCommentsForEvent(selectedEventForComments.uqid, cursor);
+            fetchCommentsForEvent(selectedEventForComments.uqid, commentOffset);
           }
         }}
         onLikeComment={handleLikeComment}

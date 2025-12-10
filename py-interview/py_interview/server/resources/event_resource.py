@@ -20,7 +20,6 @@ class EventResource:
         resp.media = [dc.asdict(event) for event in events]
 
     def on_post(self, req, resp):
-        """Handles GET requests"""
         post_body = json.load(req.bounded_stream)
         uqid = post_body.get('uqid', None)
         name = post_body.get('name', None)
@@ -34,7 +33,6 @@ class EventResource:
         resp.media = dc.asdict(data)
 
     def on_post_like(self, req, resp):
-        """Handles GET requests"""
         post_body = json.load(req.bounded_stream)
         uqid = post_body.get('uqid', None)
 
@@ -61,14 +59,23 @@ class EventResource:
     def on_get_comments(self, req, resp):
         self._logger.info("Resource: GET /api/event/comments - Get comments request received")
         event_uqid = req.get_param('uqid')
-        cursor = req.get_param('cursor', default=None)
+        limit = int(req.get_param('limit', default=20))
+        offset = int(req.get_param('offset', default=0))
         
-        self._logger.info(f"Resource: Parsed request - event_uqid={event_uqid}, cursor={cursor}")
-        comments, next_cursor = self._event_service.get_comments(event_uqid=event_uqid, cursor=cursor)
-        self._logger.info(f"Resource: Retrieved {len(comments)} comments, next_cursor={next_cursor}")
+        self._logger.info(f"Resource: Parsed request - event_uqid={event_uqid}, limit={limit}, offset={offset}")
+        comments, total_count = self._event_service.get_comments(event_uqid=event_uqid, limit=limit, offset=offset)
+        self._logger.info(f"Resource: Retrieved {len(comments)} comments, total={total_count}")
 
         resp.status = falcon.HTTP_200
-        resp.media = {'comments': [dc.asdict(comment) for comment in comments], 'next_cursor': next_cursor}
+        resp.media = {
+            'comments': [dc.asdict(comment) for comment in comments],
+            'pagination': {
+                'offset': offset,
+                'limit': limit,
+                'total': total_count,
+                'has_more': (offset + limit) < total_count
+            }
+        }
         
     def on_post_like_comment(self, req, resp):
         post_body = json.load(req.bounded_stream)

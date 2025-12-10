@@ -10,12 +10,13 @@ interface EventCommentsProps {
   onOpenChange: (open: boolean) => void;
   event: IEvent | null;
   onAddComment: (text: string, author: string) => void;
-  onLoadMoreComments?: (cursor: string | null) => void;
+  hasMore: boolean;
+  onLoadMoreComments?: () => void;
   onLikeComment?: (comment_id: string) => void;
 }
 
 const EventComments = (props: EventCommentsProps) => {
-  const { isOpen, onOpenChange, event, onAddComment, onLoadMoreComments, onLikeComment } = props;
+  const { isOpen, onOpenChange, event, onAddComment, hasMore, onLoadMoreComments, onLikeComment } = props;
   const [newComment, setNewComment] = useState('');
   const [author, setAuthor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,11 +55,9 @@ const EventComments = (props: EventCommentsProps) => {
   };
 
   const handleLoadMore = async () => {
-    if (!event?.comments || !onLoadMoreComments) return;
-    setIsLoadingMore(true);
+    if (!onLoadMoreComments) return;
     try {
-      const lastComment = event.comments[event.comments.length - 1];
-      await onLoadMoreComments(lastComment?.id || null);
+      await onLoadMoreComments();
     } finally {
       setIsLoadingMore(false);
     }
@@ -121,7 +120,7 @@ const EventComments = (props: EventCommentsProps) => {
                   </div>
                 </div>
               ))}
-              {onLoadMoreComments && (
+              {hasMore && onLoadMoreComments && (
                 <div key="load-more">
                   <button
                     onClick={handleLoadMore}

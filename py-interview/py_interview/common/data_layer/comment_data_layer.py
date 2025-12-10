@@ -2,7 +2,7 @@ import abc
 from typing import List, Optional, Tuple
 from logging import getLogger
 
-from py_interview.common.domain.event import Comment
+from py_interview.common.domain.comment import Comment
 from py_interview.common.helpers.base.base_data_layer import BaseDataLayer
 from py_interview.common.helpers.base.base_data_layer_in_memory import BaseDataLayerInMemory
 
@@ -20,14 +20,14 @@ class CommentDataLayer(BaseDataLayer, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def get_comments_for_event(self, event_uqid: str, limit: int = 20, cursor: Optional[str] = None) -> Tuple[List[Comment], Optional[str]]:
+    def get_comments_for_event(self, event_uqid: str, limit: int = 20, offset: int = 0) -> Tuple[List[Comment], int]:
         """
-        Get comments for an event with cursor-based pagination
+        Get comments for an event with offset-based pagination
 
         :param event_uqid: Event ID to get comments for
-        :param limit: Number of comments to return
-        :param cursor: Cursor from previous response (comment uqid to start after)
-        :return: Tuple of (comments, next_cursor)
+        :param limit: Number of comments to return (default 20, max 100)
+        :param offset: Starting position (0 = first comment)
+        :return: Tuple of (comments, total_count)
         """
 
 
@@ -58,34 +58,33 @@ class CommentDataLayerInMemory(BaseDataLayerInMemory, CommentDataLayer):
 
         return comment
 
-    # TODO: use some sort of cursor-based or offset-based pagination
-    # Have not decided which one to use yet or if really needed
-    def get_comments_for_event(self, event_uqid: str, limit: int = None, offset: int = 0, cursor: Optional[str] = None) -> Tuple[List[Comment], Optional[str]]:
+    def get_comments_for_event(self, event_uqid: str, limit: int = 20, offset: int = 0) -> Tuple[List[Comment], int]:
         """
-        Get comments for an event 
+        Get comments for an event with offset-based pagination
 
         :param event_uqid: Event ID
-        :param limit: Number of comments to return
-        :param offset: Offset for pagination
-        :param cursor: Cursor from previous response (comment uqid to start after)
-        :return: Tuple of (comments, next_cursor)
+        :param limit: Number of comments to return (default 20, max 100)
+        :param offset: Starting position (0 = first comment)
+        :return: Tuple of (comments, total_count)
         """
-        limit = limit or 1_000_000
+        # Validate inputs
+        limit = max(1, min(limit, 100))  # Enforce 1-100 range
+        offset = max(0, offset)  # Ensure offset is non-negative
 
         comment_uqids = self._comment_uqids_by_event.get(event_uqid, [])
-    
-        ids_to_fetch = comment_uqids 
+        total_count = len(comment_uqids)
         
-        result_comments = []
+        self._logger.info(f"CommentDataLayer: Getting comments for event {event_uqid}, limit={limit}, offset={offset}, total={total_count}")
         
-        for uqid in ids_to_fetch:
-            if len(result_comments) >= limit:
-                break
-            comment = super().get(uqid=uqid) 
-            if comment:
-                result_comments.append(comment)
+        # Get slice of UQIDs for this page
+        paginated_uqids = comment_uqids[offset:offset+limit]
         
-        return result_comments, None # No pagination implemented yet
+        # Fetch comment objects
+        result_comments = [self._data.get(uqid) for uqid in paginated_uqids if uqid in self._data]
+        
+        self._logger.info(f"CommentDataLayer: Returned {len(result_comments)} comments, total available={total_count}")
+        
+        return result_comments, total_count
 
     def delete(self, uqid: str) -> Optional[Comment]:
         to_delete = super().get(uqid=uqid)

@@ -14,4 +14,5 @@ export interface IEvent {
   img_link: string;
   number_of_likes: number;
   comments: IComment[];
+  total_comments?: number;
 }

@@ -3,7 +3,8 @@ from wsgiref.simple_server import make_server
 
 from py_interview.common.data_layer.comment_data_layer import CommentDataLayerInMemory
 from py_interview.common.data_layer.event_data_layer import EventDataLayerCache, EventDataLayerInMemory
-from py_interview.common.domain.event import new_comment, new_event
+from py_interview.common.domain.event import new_event
+from py_interview.common.domain.comment import new_comment
 from py_interview.common.service.event_service import EventServiceDefault
 from py_interview.server.api import Api
 

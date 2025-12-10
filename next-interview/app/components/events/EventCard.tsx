@@ -9,13 +9,14 @@ interface IEventCardProps {
   number_of_likes: number;
   uqid: string;
   comments: IComment[];
+  total_comments?: number;
   onLike: (uqid: string) => void;
   onEdit: (event: IEvent) => void;
   onViewComments: (event: IEvent) => void;
 }
 
 const EventCard = (props: IEventCardProps) => {
-  const { name, description, img_link, number_of_likes, uqid, comments, onLike, onEdit, onViewComments} = props;
+  const { name, description, img_link, number_of_likes, uqid, comments, total_comments, onLike, onEdit, onViewComments} = props;
   
   return (
     <div className="w-full max-w-md mb-6">
@@ -40,13 +41,13 @@ const EventCard = (props: IEventCardProps) => {
             Like ({number_of_likes})
           </Button>
           <Button
-            onClick={() => onViewComments({ uqid, name, description, img_link, number_of_likes, comments })}
+            onClick={() => onViewComments({ uqid, name, description, img_link, number_of_likes, comments, total_comments })}
             className="bg-orange-500 text-white"
           >
-            Comments ({props.comments.length})
+            Comments ({total_comments ?? 0})
           </Button>
           <Button
-            onClick={() => onEdit({ uqid, name, description, img_link, number_of_likes, comments })}
+            onClick={() => onEdit({ uqid, name, description, img_link, number_of_likes, comments, total_comments })}
             className="bg-green-500 text-white"
           >
             Edit
